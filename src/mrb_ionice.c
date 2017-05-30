@@ -21,28 +21,6 @@ static const struct mrb_data_type mrb_ionice_data_type = {
   "mrb_ionice_data", mrb_free,
 };
 
-static mrb_value mrb_ionice_init(mrb_state *mrb, mrb_value self)
-{
-  mrb_ionice_data *data;
-  char *str;
-  int len;
-
-  data = (mrb_ionice_data *)DATA_PTR(self);
-  if (data) {
-    mrb_free(mrb, data);
-  }
-  DATA_TYPE(self) = &mrb_ionice_data_type;
-  DATA_PTR(self) = NULL;
-
-  mrb_get_args(mrb, "s", &str, &len);
-  data = (mrb_ionice_data *)mrb_malloc(mrb, sizeof(mrb_ionice_data));
-  data->str = str;
-  data->len = len;
-  DATA_PTR(self) = data;
-
-  return self;
-}
-
 static mrb_value mrb_ionice_hello(mrb_state *mrb, mrb_value self)
 {
   mrb_ionice_data *data = DATA_PTR(self);

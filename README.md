@@ -13,13 +13,18 @@ end
 ```
 ## example
 ```ruby
-p Ionice.hi
-#=> "hi!!"
-t = Ionice.new "hello"
-p t.hello
-#=> "hello"
-p t.bye
-#=> "hello bye"
+# for single process or thread
+Ionice.set(
+  Ionice::IOPRIO_WHO_PROCESS,
+  pid,
+  Ionice::IOPRIO_CLASS_RT,
+  1
+)
+Ionice.get(
+  Ionice::IOPRIO_WHO_PROCESS,
+  pid
+)
+#=> [Ionice::IOPRIO_CLASS_RT, 1]
 ```
 
 ## License
