@@ -1,3 +1,4 @@
+sudo: required
 language: c
 compiler:
   - gcc
@@ -7,9 +8,5 @@ before_install:
 install:
     - sudo apt-get -qq install rake bison git gperf
 before_script:
-  - cd ../
-  - git clone https://github.com/mruby/mruby.git
-  - cd mruby
-  - cp -fp ../mruby-ionice/.travis_build_config.rb build_config.rb
 script:
-  - make all test
+  - rake test
