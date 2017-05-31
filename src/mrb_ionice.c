@@ -36,14 +36,13 @@ static mrb_value mrb_ionice_hi(mrb_state *mrb, mrb_value self)
 void mrb_mruby_ionice_gem_init(mrb_state *mrb)
 {
   struct RClass *ionice;
-  ionice = mrb_define_class(mrb, "Ionice", mrb->object_class);
-  mrb_define_method(mrb, ionice, "initialize", mrb_ionice_init, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, ionice, "hello", mrb_ionice_hello, MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, ionice, "hi", mrb_ionice_hi, MRB_ARGS_NONE());
+  ionice = mrb_define_class(mrb, "IOnice", mrb->object_class);
+  //mrb_define_method(mrb, ionice, "initialize", mrb_ionice_init, MRB_ARGS_REQ(1));
+  //mrb_define_method(mrb, ionice, "hello", mrb_ionice_hello, MRB_ARGS_NONE());
+  //mrb_define_class_method(mrb, ionice, "hi", mrb_ionice_hi, MRB_ARGS_NONE());
   DONE;
 }
 
 void mrb_mruby_ionice_gem_final(mrb_state *mrb)
 {
 }
-

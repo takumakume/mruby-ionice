@@ -1,4 +1,4 @@
-class Ionice
+class IOnice
   IOPRIO_WHO_PROCESS = 1
   IOPRIO_WHO_PGRP    = 2
   IOPRIO_WHO_USER    = 3
