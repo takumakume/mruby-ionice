@@ -45,7 +45,7 @@ void ioprio_error_handler(mrb_state *mrb, int error)
   }
 }
 
-static mrb_value sys_ioprio_set(mrb_state *mrb, int who, int which, int ioclass, int data)
+static mrb_value sys_ioprio_set(mrb_state *mrb, int which, int who, int ioclass, int data)
 {
   switch (ioclass) {
     case IOPRIO_CLASS_NONE:
@@ -64,20 +64,21 @@ static mrb_value sys_ioprio_set(mrb_state *mrb, int who, int which, int ioclass,
       mrb_raise(mrb, E_RUNTIME_ERROR, "unknown ioclass");
   }
 
-  if (_sys_ioprio_set(who, which, IOPRIO_PRIO_VALUE(ioclass, data)) == -1) {
+  if (_sys_ioprio_set(which, who, IOPRIO_PRIO_VALUE(ioclass, data)) == -1) {
     ioprio_error_handler(mrb, errno);
+    return mrb_false_value();
   }
 
   return mrb_true_value();
 }
 
-static mrb_value sys_ioprio_get(mrb_state *mrb, int who, int which)
+static mrb_value sys_ioprio_get(mrb_state *mrb, int which, int who)
 {
   int ioprio;
   int ioclass;
   mrb_value result;
 
-  ioprio = _sys_ioprio_get(who, which);
+  ioprio = _sys_ioprio_get(which, who);
 
   if (ioprio == -1) {
     ioprio_error_handler(mrb, errno);
@@ -108,8 +109,9 @@ static mrb_value mrb_ioprio_set_process(mrb_state *mrb, mrb_value self)
   mrb_value data;
 
   mrb_get_args(mrb, "ii|i", &pid, &ioclass, &data);
-  if (mrb_nil_p(data))
+  if (mrb_nil_p(data)) {
     data = mrb_fixnum_value(0);
+  }
   return sys_ioprio_set(mrb, IOPRIO_WHO_PROCESS, mrb_fixnum_p(pid), mrb_fixnum_p(ioclass), mrb_fixnum_p(data));
 }
 

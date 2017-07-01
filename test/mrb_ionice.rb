@@ -26,10 +26,9 @@ assert('IOnice::Process.get') do
 end
 
 assert('IOnice::Process.set') do
-  assert_true(IOnice::Process.set(Process.pid, IOnice::CLASS_BE, 10))
+  assert_true(IOnice::Process.set(Process.pid, 100))
   expect = {
-    "class" => IOnice::CLASS_BE,
-    "priority" => 10
+    "class" => IOnice::IOPRIO_CLASS_RT
   }
   assert_equal(expect, IOnice::Process.get(Process.pid))
 end
