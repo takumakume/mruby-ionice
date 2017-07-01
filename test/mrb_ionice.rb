@@ -26,7 +26,12 @@ assert('IOnice::Process.get') do
 end
 
 assert('IOnice::Process.set') do
-  true
+  assert_true(IOnice::Process.set(Process.pid, IOnice::CLASS_BE, 10))
+  expect = {
+    "class" => IOnice::CLASS_BE,
+    "priority" => 10
+  }
+  assert_equal(expect, IOnice::Process.get(Process.pid))
 end
 
 assert('IOnice::ProcessGroup.get') do

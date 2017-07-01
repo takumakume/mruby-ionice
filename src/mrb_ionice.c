@@ -113,6 +113,7 @@ static mrb_value mrb_ioprio_set_process(mrb_state *mrb, mrb_value self)
   return sys_ioprio_set(mrb, IOPRIO_WHO_PROCESS, mrb_fixnum_p(pid), mrb_fixnum_p(ioclass), mrb_fixnum_p(data));
 }
 
+/*
 static mrb_value mrb_ioprio_get_process_group(mrb_state *mrb, mrb_value self){
   mrb_int pgid;
   mrb_get_args(mrb, "i", &pgid);
@@ -138,10 +139,11 @@ static mrb_value mrb_ioprio_set_user(mrb_state *mrb, mrb_value self){
   mrb_get_args(mrb, "ii", &uid, &priority);
   return sys_ioprio_set(mrb, IOPRIO_WHO_USER, uid, priority);
 }
+*/
 
 void mrb_mruby_ionice_gem_init(mrb_state *mrb)
 {
-  struct RClass *ionice;
+  struct RClass *ionice, *ionice_process, *ionice_process_group, *ionice_user;
 
   ionice               = mrb_define_class(mrb, "IOnice", mrb->object_class);
   ionice_process       = mrb_define_class_under(mrb, ionice, "Process",      mrb->object_class);
@@ -151,13 +153,14 @@ void mrb_mruby_ionice_gem_init(mrb_state *mrb)
   // IOnice::Process
   mrb_define_class_method(mrb, ionice_process, "get", mrb_ioprio_get_process, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, ionice_process, "set", mrb_ioprio_set_process, MRB_ARGS_REQ(2));
+  /*
   // IOnice::ProcessGroup
   mrb_define_class_method(mrb, ionice_process_group, "get", mrb_ioprio_get_process_group, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, ionice_process_group, "set", mrb_ioprio_set_process_group, MRB_ARGS_REQ(2));
   // IOnice::User
   mrb_define_class_method(mrb, ionice_user, "get", mrb_ioprio_get_user, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, ionice_user, "set", mrb_ioprio_set_user, MRB_ARGS_REQ(2));
-
+  */
   // ioprio class const
   mrb_define_const(mrb, ionice, "IOPRIO_CLASS_NONE",  mrb_fixnum_value(IOPRIO_CLASS_NONE));
   mrb_define_const(mrb, ionice, "CLASS_NONE",         mrb_fixnum_value(IOPRIO_CLASS_NONE));
