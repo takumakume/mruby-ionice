@@ -26,9 +26,13 @@ assert('IOnice::Process.get') do
 end
 
 assert('IOnice::Process.set') do
-  assert_true(IOnice::Process.set(Process.pid, 100))
+  assert_true(IOnice::Process.set(Process.pid, IOnice::CLASS_NONE))
   expect = {
-    "class" => IOnice::IOPRIO_CLASS_RT
+    "class" => IOnice::CLASS_NONE
+  }
+  assert_true(IOnice::Process.set(Process.pid, IOnice::CLASS_IDLE))
+  expect = {
+    "class" => IOnice::CLASS_IDLE
   }
   assert_equal(expect, IOnice::Process.get(Process.pid))
 end

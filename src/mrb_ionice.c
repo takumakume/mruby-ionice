@@ -21,12 +21,12 @@
 
 #define DONE mrb_gc_arena_restore(mrb, 0);
 
-static inline int _sys_ioprio_set(int which, int who, int ioprio)
+static inline int sys_ioprio_set(int which, int who, int ioprio)
 {
   return syscall(SYS_ioprio_set, which, who, ioprio);
 }
 
-static inline int _sys_ioprio_get(int which, int who)
+static inline int sys_ioprio_get(int which, int who)
 {
   return syscall(SYS_ioprio_get, which, who);
 }
@@ -45,7 +45,7 @@ void ioprio_error_handler(mrb_state *mrb, int error)
   }
 }
 
-static mrb_value sys_ioprio_set(mrb_state *mrb, int which, int who, int ioclass, int data)
+static mrb_value mrb_ioprio_set(mrb_state *mrb, int which, int who, int ioclass, int data)
 {
   switch (ioclass) {
     case IOPRIO_CLASS_NONE:
@@ -64,7 +64,7 @@ static mrb_value sys_ioprio_set(mrb_state *mrb, int which, int who, int ioclass,
       mrb_raise(mrb, E_RUNTIME_ERROR, "unknown ioclass");
   }
 
-  if (_sys_ioprio_set(which, who, IOPRIO_PRIO_VALUE(ioclass, data)) == -1) {
+  if (sys_ioprio_set(which, who, IOPRIO_PRIO_VALUE(ioclass, data)) == -1) {
     ioprio_error_handler(mrb, errno);
     return mrb_false_value();
   }
@@ -72,13 +72,13 @@ static mrb_value sys_ioprio_set(mrb_state *mrb, int which, int who, int ioclass,
   return mrb_true_value();
 }
 
-static mrb_value sys_ioprio_get(mrb_state *mrb, int which, int who)
+static mrb_value mrb_ioprio_get(mrb_state *mrb, int which, int who)
 {
   int ioprio;
   int ioclass;
   mrb_value result;
 
-  ioprio = _sys_ioprio_get(which, who);
+  ioprio = sys_ioprio_get(which, who);
 
   if (ioprio == -1) {
     ioprio_error_handler(mrb, errno);
@@ -99,7 +99,7 @@ static mrb_value mrb_ioprio_get_process(mrb_state *mrb, mrb_value self)
 {
   mrb_value pid;
   mrb_get_args(mrb, "i", &pid);
-  return sys_ioprio_get(mrb, IOPRIO_WHO_PROCESS, mrb_fixnum_p(pid));
+  return mrb_ioprio_get(mrb, IOPRIO_WHO_PROCESS, mrb_fixnum_p(pid));
 }
 
 static mrb_value mrb_ioprio_set_process(mrb_state *mrb, mrb_value self)
@@ -112,7 +112,7 @@ static mrb_value mrb_ioprio_set_process(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(data)) {
     data = mrb_fixnum_value(0);
   }
-  return sys_ioprio_set(mrb, IOPRIO_WHO_PROCESS, mrb_fixnum_p(pid), mrb_fixnum_p(ioclass), mrb_fixnum_p(data));
+  return mrb_ioprio_set(mrb, IOPRIO_WHO_PROCESS, mrb_fixnum_p(pid), mrb_fixnum_p(ioclass), mrb_fixnum_p(data));
 }
 
 /*
