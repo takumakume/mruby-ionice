@@ -21,12 +21,12 @@
 
 #define DONE mrb_gc_arena_restore(mrb, 0);
 
-static inline int ioprio_set(int which, int who, int ioprio)
+static inline int _sys_ioprio_set(int which, int who, int ioprio)
 {
   return syscall(SYS_ioprio_set, which, who, ioprio);
 }
 
-static inline int ioprio_get(int which, int who)
+static inline int _sys_ioprio_get(int which, int who)
 {
   return syscall(SYS_ioprio_get, which, who);
 }
@@ -45,14 +45,8 @@ void ioprio_error_handler(mrb_state *mrb, int error)
   }
 }
 
-static mrb_value mrb_ioprio_set(mrb_state *mrb, mrb_value self)
+static mrb_value sys_ioprio_set(mrb_state *mrb, int who, int which, int ioclass, int data)
 {
-  mrb_int id;
-  mrb_int ioclass;
-  mrb_int data = -1;
-  mrb_int who = IOPRIO_WHO_PROCESS;
-
-  mrb_get_args(mrb, "ii|ii", &id, &ioclass, &data, &who);
   switch (ioclass) {
     case IOPRIO_CLASS_NONE:
       data = 0;
@@ -70,23 +64,20 @@ static mrb_value mrb_ioprio_set(mrb_state *mrb, mrb_value self)
       mrb_raise(mrb, E_RUNTIME_ERROR, "unknown ioclass");
   }
 
-  if (ioprio_set(who, id, IOPRIO_PRIO_VALUE(ioclass, data)) == -1) {
+  if (_sys_ioprio_set(who, which, IOPRIO_PRIO_VALUE(ioclass, data)) == -1) {
     ioprio_error_handler(mrb, errno);
   }
 
   return mrb_true_value();
 }
 
-static mrb_value mrb_ioprio_get(mrb_state *mrb, mrb_value self)
+static mrb_value sys_ioprio_get(mrb_state *mrb, int who, int which)
 {
   int ioprio;
   int ioclass;
-  mrb_int id;
-  mrb_int who = IOPRIO_WHO_PROCESS;
   mrb_value result;
 
-  mrb_get_args(mrb, "i|i", &id, &who);
-  ioprio = ioprio_get(who, id);
+  ioprio = _sys_ioprio_get(who, which);
 
   if (ioprio == -1) {
     ioprio_error_handler(mrb, errno);
@@ -99,25 +90,83 @@ static mrb_value mrb_ioprio_get(mrb_state *mrb, mrb_value self)
   if (ioclass == IOPRIO_CLASS_RT || ioclass == IOPRIO_CLASS_BE) {
     mrb_hash_set(mrb, result, mrb_str_new_cstr(mrb, "priority"), mrb_fixnum_value(IOPRIO_PRIO_DATA(ioprio)));
   }
+
   return result;
+}
+
+static mrb_value mrb_ioprio_get_process(mrb_state *mrb, mrb_value self)
+{
+  mrb_value pid;
+  mrb_get_args(mrb, "i", &pid);
+  return sys_ioprio_get(mrb, IOPRIO_WHO_PROCESS, mrb_fixnum_p(pid));
+}
+
+static mrb_value mrb_ioprio_set_process(mrb_state *mrb, mrb_value self)
+{
+  mrb_value pid;
+  mrb_value ioclass;
+  mrb_value data;
+
+  mrb_get_args(mrb, "ii|i", &pid, &ioclass, &data);
+  if (mrb_nil_p(data))
+    data = mrb_fixnum_value(0);
+  return sys_ioprio_set(mrb, IOPRIO_WHO_PROCESS, mrb_fixnum_p(pid), mrb_fixnum_p(ioclass), mrb_fixnum_p(data));
+}
+
+static mrb_value mrb_ioprio_get_process_group(mrb_state *mrb, mrb_value self){
+  mrb_int pgid;
+  mrb_get_args(mrb, "i", &pgid);
+  return sys_ioprio_get(mrb, IOPRIO_WHO_PGRP, pgid);
+}
+
+static mrb_value mrb_ioprio_set_process_group(mrb_state *mrb, mrb_value self){
+  mrb_int pgid;
+  mrb_int priority;
+  mrb_get_args(mrb, "ii", &pgid, &priority);
+  return sys_ioprio_set(mrb, IOPRIO_WHO_PGRP, pgid, priority);
+}
+
+static mrb_value mrb_ioprio_get_user(mrb_state *mrb, mrb_value self){
+  mrb_int uid;
+  mrb_get_args(mrb, "i", &uid);
+  return sys_ioprio_get(mrb, IOPRIO_WHO_USER, uid);
+}
+
+static mrb_value mrb_ioprio_set_user(mrb_state *mrb, mrb_value self){
+  mrb_int uid;
+  mrb_int priority;
+  mrb_get_args(mrb, "ii", &uid, &priority);
+  return sys_ioprio_set(mrb, IOPRIO_WHO_USER, uid, priority);
 }
 
 void mrb_mruby_ionice_gem_init(mrb_state *mrb)
 {
   struct RClass *ionice;
 
-  ionice = mrb_define_module(mrb, "IOnice");
-  mrb_define_module_function(mrb, ionice, "set", mrb_ioprio_set, MRB_ARGS_ANY());
-  mrb_define_module_function(mrb, ionice, "get", mrb_ioprio_get, MRB_ARGS_ANY());
+  ionice               = mrb_define_class(mrb, "IOnice", mrb->object_class);
+  ionice_process       = mrb_define_class_under(mrb, ionice, "Process",      mrb->object_class);
+  ionice_process_group = mrb_define_class_under(mrb, ionice, "ProcessGroup", mrb->object_class);
+  ionice_user          = mrb_define_class_under(mrb, ionice, "User",         mrb->object_class);
+
+  // IOnice::Process
+  mrb_define_class_method(mrb, ionice_process, "get", mrb_ioprio_get_process, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, ionice_process, "set", mrb_ioprio_set_process, MRB_ARGS_REQ(2));
+  // IOnice::ProcessGroup
+  mrb_define_class_method(mrb, ionice_process_group, "get", mrb_ioprio_get_process_group, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, ionice_process_group, "set", mrb_ioprio_set_process_group, MRB_ARGS_REQ(2));
+  // IOnice::User
+  mrb_define_class_method(mrb, ionice_user, "get", mrb_ioprio_get_user, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, ionice_user, "set", mrb_ioprio_set_user, MRB_ARGS_REQ(2));
+
   // ioprio class const
   mrb_define_const(mrb, ionice, "IOPRIO_CLASS_NONE",  mrb_fixnum_value(IOPRIO_CLASS_NONE));
+  mrb_define_const(mrb, ionice, "CLASS_NONE",         mrb_fixnum_value(IOPRIO_CLASS_NONE));
   mrb_define_const(mrb, ionice, "IOPRIO_CLASS_RT",    mrb_fixnum_value(IOPRIO_CLASS_RT));
+  mrb_define_const(mrb, ionice, "CLASS_RT",           mrb_fixnum_value(IOPRIO_CLASS_RT));
   mrb_define_const(mrb, ionice, "IOPRIO_CLASS_BE",    mrb_fixnum_value(IOPRIO_CLASS_BE));
+  mrb_define_const(mrb, ionice, "CLASS_BE",           mrb_fixnum_value(IOPRIO_CLASS_BE));
   mrb_define_const(mrb, ionice, "IOPRIO_CLASS_IDLE",  mrb_fixnum_value(IOPRIO_CLASS_IDLE));
-  // ioprio who const
-  mrb_define_const(mrb, ionice, "IOPRIO_WHO_PROCESS", mrb_fixnum_value(IOPRIO_WHO_PROCESS));
-  mrb_define_const(mrb, ionice, "IOPRIO_WHO_PGRP",    mrb_fixnum_value(IOPRIO_WHO_PGRP));
-  mrb_define_const(mrb, ionice, "IOPRIO_WHO_USER",    mrb_fixnum_value(IOPRIO_WHO_USER));
+  mrb_define_const(mrb, ionice, "CLASS_IDLE",         mrb_fixnum_value(IOPRIO_CLASS_IDLE));
 
   DONE;
 }
